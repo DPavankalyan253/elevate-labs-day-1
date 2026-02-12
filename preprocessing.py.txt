@@ -1,0 +1,77 @@
+# preprocessing.py
+# Complete Data Preprocessing Pipeline
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import StandardScaler
+
+# -------------------------------
+# 1. Load Dataset
+# -------------------------------
+df = pd.read_csv("data.csv")
+
+print("First 5 rows:")
+print(df.head())
+print("\nDataset Info:")
+print(df.info())
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+# -------------------------------
+# 2. Handle Missing Values
+# -------------------------------
+num_cols = df.select_dtypes(include=["int64", "float64"]).columns
+cat_cols = df.select_dtypes(include=["object"]).columns
+
+# Numerical → median
+for col in num_cols:
+    df[col].fillna(df[col].median(), inplace=True)
+
+# Categorical → mode
+for col in cat_cols:
+    df[col].fillna(df[col].mode()[0], inplace=True)
+
+# -------------------------------
+# 3. Encode Categorical Columns
+# -------------------------------
+le = LabelEncoder()
+for col in cat_cols:
+    df[col] = le.fit_transform(df[col])
+
+# -------------------------------
+# 4. Standardize Numerical Features
+# -------------------------------
+scaler = StandardScaler()
+df[num_cols] = scaler.fit_transform(df[num_cols])
+
+# -------------------------------
+# 5. Outlier Visualization
+# -------------------------------
+for col in num_cols:
+    plt.figure(figsize=(5, 2))
+    sns.boxplot(x=df[col])
+    plt.title(f"Boxplot of {col}")
+    plt.show()
+
+# -------------------------------
+# 6. Remove Outliers (IQR Method)
+# -------------------------------
+for col in num_cols:
+    Q1 = df[col].quantile(0.25)
+    Q3 = df[col].quantile(0.75)
+    IQR = Q3 - Q1
+
+    df = df[(df[col] >= Q1 - 1.5 * IQR) &
+            (df[col] <= Q3 + 1.5 * IQR)]
+
+print("\nFinal dataset shape:", df.shape)
+
+# -------------------------------
+# Save Cleaned Dataset
+# -------------------------------
+df.to_csv("cleaned_data.csv", index=False)
+print("Cleaned data saved as cleaned_data.csv")
